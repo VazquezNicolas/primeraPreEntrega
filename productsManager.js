@@ -1,17 +1,98 @@
 const fs= require('fs')
 
-class ProductManager {
-    static id = 1
-
+class ProductManager {  
 
     constructor (path) {
         this.products = [];
         this.path = path
+        this.id = 0;
     }
-    
+
+    addCart(){
+        let cart = ({
+            id:this.id,
+            products:this.products,
+        })
+
+        const data = JSON.parse(fs.readFileSync(this.path), "utf-8")
+        console.log(data)
+        this.products = data;
+        let newId = this.products.length;
+        newId ++;
+
+        if (this.products !== undefined){ 
+            cart.id=newId;
+            this.products.push(cart)
+            fs.writeFileSync(this.path, JSON.stringify(this.products));
+            console.log("carrito agregado")
+        }else{
+            cart.id ++
+            fs.appendFileSync(this.path, JSON.stringify(cart))
+        }
+    }
+
+    addProductToCart(respuestaCart, respuestaProdId){
+        let newProduct = {
+            quantity: 1,
+            id: respuestaProdId,
+        };
+
+        let nuevaId = respuestaCart.id
+        
+        console.log(`ID Carrito ${nuevaId}`)
+        console.log(`ID Producto ${respuestaProdId}`)
+        
+        const data = JSON.parse(fs.readFileSync(this.path), "utf-8")
+
+        const productIndex = data.findIndex(product => product.id == nuevaId);
+
+        if(productIndex !== -1){
+            console.log(`encontro el carrito ${productIndex+1}`)
+            console.log(data[productIndex].products[0])
+             if(data[productIndex].products[0] == undefined){
+                console.log("Carrito vacio, agrego producto")
+                console.log(data[productIndex].products)
+                data[productIndex].products.push(newProduct);
+                console.log(data[productIndex].products[0])
+                fs.writeFileSync(this.path, JSON.stringify(data));
+             }else{                
+                const productIdCart = data[productIndex].products.findIndex(product => product.id == respuestaProdId);
+                console.log(`Carrito con producto, buenco el prod con id: ${productIdCart} `)
+                if(productIdCart !== -1){
+                    console.log(`Existe el prod con id:${productIdCart}, quantity ++`)
+                    console.log(productIdCart)
+                    console.log(data[productIndex].products)
+                    const posicionSuma = data[productIndex].products.findIndex(product => product.id == respuestaProdId);
+                    data[productIndex].products[posicionSuma].quantity ++;
+                    console.log(data[productIndex].products[posicionSuma].quantity)
+                    fs.writeFileSync(this.path, JSON.stringify(data));
+                }else{
+                    console.log(`No xiste el prod con id:${productIdCart}, push()`)
+                    data[productIndex].products.push(newProduct);
+                    fs.writeFileSync(this.path, JSON.stringify(data));
+                }
+             }
+        }else{
+            console.log("No se encontro Id del carrito")
+        }
+        // console.log(data)
+        // console.log(productIndex)
+        // console.log("pruevo")
+        // console.log(data[productIndex].products)
+
+        // respuestaCart.products.push(newProduct)
+
+
+        // console.log(newProduct)
+        // console.log(respuestaCart)
+
+        // console.log(respuestaCart.products[0].quantity)
+  
+    }
+
     addProduct(title, description, price, thumbnail, code, stock, status=true, category ) {
         
-        const product = ({
+        let product = ({
             title: title,
             description: description,
             price: price,
@@ -20,23 +101,31 @@ class ProductManager {
             stock: stock,
             status: status,
             category: category,
-            id: ProductManager.id
+            id: this.id
         })
-            
-        if (this.products !=  undefined){
-            
-            const chekCode = this.products.find(e => e.code === product.code)
 
+        const data = JSON.parse(fs.readFileSync(this.path), "utf-8")
+
+        this.products = data;
+        let newId = this.products.length;
+        newId++;
+        if (this.products !== undefined){
+            
+            const chekCode = this.products.find(e => e.code == product.code)
+            
             if (chekCode != undefined) {
                  console.log('error, se a colocado el mismo codigo en un producto distinto')
-            //  } else if ( (!product.title ) || (!product.description) || (!product.price ) || (!product.thumbnail ) || (!product.code ) || (!product.stock ) ) {
-            //       console.log('todos los campos son obligatorios ')
+              } else if ( (!product.title ) || (!product.description) || (!product.price ) || (!product.code ) || (!product.stock ) || (!product.category ) || (!product.status ) ) {
+                   console.log('todos los campos son obligatorios ')
               } else {
-                this.products.push(product)
                 console.log("agrego")
-                fs.writeFileSync(this.path, JSON.stringify(this.products))
-                ProductManager.id++
+                product.id = newId
+                this.products.push(product)
+                fs.writeFileSync(this.path, JSON.stringify(this.products));
             }
+        }else {
+            product.id ++
+            fs.writeFileSync(this.path, JSON.stringify(this.products))
         }
     }
 
@@ -57,19 +146,18 @@ class ProductManager {
                 console.log(productId)
                 return productId;
             }
-             else { error();}
-        
+             else { console.log("No existe un producto con esa id");}
+             return 0;
     }
 
     deleteProduct = async (id) => {
         try {
-            console.log(id+"1")
         let data2 = await fs.promises.readFile(this.path,'utf-8')
-            console.log(id+"1")
+        
             data2 = await JSON.parse(data2)
             let productId = await data2.filter(e => e.id != id)
             let errorsito = await data2.some(e => e.id == id)
-            console.log(id+"2")
+
 
             if (errorsito == false)
             {
@@ -81,46 +169,47 @@ class ProductManager {
                     console.log("\nSe a eliminida el producto")
                     console.log("Productos Restantes:")
                     console.log(data2)
-                    return 1;
                     })
                 }
         } catch(error) {
                 await console.log("\nEl producto no existe")
-                return 0;
             }
     }
 
-    updateProduct = async (title, description, price, thumbnail, code, stock, status, category, id) => {
-        const product = ({
-            id:id,
-            title: title,
-            description: description,
-            price: price,
-            thumbnail: thumbnail,
-            code: code,
-            stock: stock,
-            status: status,
-            categoty: category,
-        })
+   updateProduct = async (title, description, price, thumbnail, code, stock, status, category, id) => {
+        const data = JSON.parse(fs.readFileSync(this.path), "utf-8")
+        this.products = data;
 
-        let data = await fs.promises.readFile(this.path,'utf-8')
-        
-            data = await JSON.parse(data)
-            const productId = await  data.filter(e => e.id != id)
+        const productIndex = this.products.findIndex(product => product.id == id);
+    
+        console.log(productIndex)
+        if (productIndex !== -1) {
+            this.products[productIndex] = {
+                id,
+                title,
+                description,
+                price,
+                thumbnail,
+                code,
+                stock,
+                status,
+                category
+            };
+    
+    
+            await fs.promises.writeFile(this.path, JSON.stringify(this.products));
+            console.log("\nSe ha modificado el producto");
+            console.log("Productos actualizados:");
+            console.log(this.products);
+        } else {
+            console.log(`No se encontró un producto con id ${id}`);
+        }
+    };
 
-            await fs.promises.writeFile(this.path, JSON.stringify(productId))
-         
-            data = await fs.promises.readFile(this.path,'utf-8')
-            .then(data => {
-                fs.appendFileSync(this.path, JSON.stringify(product))
-                console.log("\nSe a modificado el producto")
-                console.log("Productos Actualizado:")
-                console.log(data)})
-    }
 }
 
-const products = new ProductManager('../archivos/products.json');
-const cart     = new ProductManager ('../archivos/carts.json');
+const products = new ProductManager('./archivos/products.json');
+const cart     = new ProductManager ('./archivos/carts.json');
 
 module.exports = {
     products,

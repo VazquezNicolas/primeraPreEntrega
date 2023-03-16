@@ -5,28 +5,24 @@ const router = Router();
 module.exports = router;              
 
 //Todos los productos
-router.get('/', async(req,res) => {
-    try {
+router.get('/', (req,res) => {
+  
         const limit = req.query.limit;
-        const productos =  await products.getProducts();
+        const productos =   products.getProducts();
         
         console.log(productos)
-        if ( limit){
+        if (limit){
             respuesta =  productos.slice(0,limit)
         } else {
             respuesta = productos;
         }
-        res.send(respuesta)
-    }catch(error) {
-    console.log(error)
-}  
+        res.send(respuesta) 
 });
 
 //Producto por id
 router.get('/:pid', (req,res) => {
     const pid = req.params.pid;
     const respuesta = products.getProductsById(pid);
-    console.log(respuesta)
     res.send({respuesta})  
   });
 
@@ -34,17 +30,26 @@ router.get('/:pid', (req,res) => {
 router.post('/', (req,res) => {
 const {title, description, price, thumbnail, code, stock, status, category} = req.body;
 products.addProduct(title, description, price, thumbnail, code, stock, status, category);
+
 res.status(201).json({message: '¡Producto Agregado!'})
 })
 
-//Eliminar por Id
-router.delete('/:pid', async(req,res) => {
-    try{
-        const pid = req.params.pid;
-        console.log(pid)
-        (201).json({message: '¡Producto Eliminado!'})
+//Actualizar Producto
+router.put('/:pid', (req,res) => {
+    const pid = req.params.pid;
+    const {title, description, price, thumbnail, code, stock, status, category} = req.body;
+    products.updateProduct(title, description, price, thumbnail, code, stock, status, category,pid);
 
-        }catch(error){
-            res.status(401).json({message: '¡No existe el Producto!'})
-        }
+    res.status(201).json({message: '¡Producto Modificado!'})
+
+})
+
+//Eliminar por Id
+router.delete('/:pid', (req,res) => {
+    
+        const pid = req.params.pid;
+         console.log(pid+"desde router")
+         products.deleteProduct(pid)
+
+       res.status (201).json({message: '¡Producto Eliminado!'})    
 })
